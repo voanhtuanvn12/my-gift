@@ -27,12 +27,14 @@ var sampleSet = wire.NewSet(
 	sample.ProvideRepository,
 	sample.ProvideService,
 	sample.ProvideController,
+	sample.ProvideGRPCHandler,
 )
 
 var dummySampleSet = wire.NewSet(
 	sample.NewSampleRepositoryDummy,
 	sample.ProvideService,
 	sample.ProvideController,
+	sample.ProvideGRPCHandler,
 )
 
 // InitializeApp wires the full app with PostgreSQL.

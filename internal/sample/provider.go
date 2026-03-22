@@ -16,3 +16,8 @@ func ProvideService(repo SampleRepository) SampleService {
 func ProvideController(svc SampleService) *Controller {
 	return &Controller{SampleSvc: svc}
 }
+
+// ProvideGRPCHandler creates a new gRPC Handler.
+func ProvideGRPCHandler(svc SampleService) *GRPCHandler {
+	return NewGRPCHandler(svc)
+}

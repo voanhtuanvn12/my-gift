@@ -13,7 +13,8 @@
       "Bash(go install github.com/swaggo/swag/v2/cmd/swag@latest)",
       "Bash(lsof -ti :8080)",
       "Bash(xargs kill -9)",
-      "Bash(go install github.com/google/wire/cmd/wire@latest)"
+      "Bash(go install github.com/google/wire/cmd/wire@latest)",
+      "Bash(go get github.com/fullstorydev/grpchan google.golang.org/grpc)"
     ]
   }
 }

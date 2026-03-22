@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package sample.v1;
+
+option go_package = "my-gift/gen/proto/sample/v1;samplev1";
+
+service SampleService {
+  rpc ListSamples(ListSamplesRequest) returns (ListSamplesResponse);
+  rpc CreateSample(CreateSampleRequest) returns (Sample);
+  rpc GetSample(GetSampleRequest) returns (Sample);
+  rpc UpdateSample(UpdateSampleRequest) returns (UpdateSampleResponse);
+  rpc PatchSample(PatchSampleRequest) returns (Sample);
+  rpc DeleteSample(DeleteSampleRequest) returns (DeleteSampleResponse);
+}
+
+message Sample {
+  int32  id          = 1;
+  string name        = 2;
+  string description = 3;
+  int32  created_by  = 4;
+  int32  updated_by  = 5;
+  int64  created_at  = 6;
+  int64  updated_at  = 7;
+}
+
+message ListSamplesRequest {
+  int32 page  = 1;
+  int32 limit = 2;
+}
+
+message ListSamplesResponse {
+  repeated Sample data  = 1;
+  int64           total = 2;
+  int32           page  = 3;
+  int32           limit = 4;
+}
+
+message CreateSampleRequest {
+  string name        = 1;
+  string description = 2;
+  int32  created_by  = 3;
+}
+
+message GetSampleRequest {
+  int32 id = 1;
+}
+
+message UpdateSampleRequest {
+  int32  id          = 1;
+  string name        = 2;
+  string description = 3;
+  int32  updated_by  = 4;
+}
+
+message UpdateSampleResponse {}
+
+message PatchSampleRequest {
+  int32          id          = 1;
+  optional string name        = 2;
+  optional string description = 3;
+  int32          updated_by  = 4;
+}
+
+message DeleteSampleRequest {
+  int32 id = 1;
+}
+
+message DeleteSampleResponse {}

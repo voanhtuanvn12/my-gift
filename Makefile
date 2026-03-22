@@ -1,4 +1,7 @@
-.PHONY: run run-dummy build swagger wire tidy lint
+.PHONY: run run-dummy build swagger wire proto tidy lint
+
+WIRE := $(shell go env GOPATH)/bin/wire
+BUF  := $(shell go env GOPATH)/bin/buf
 
 SWAG := $(shell go env GOPATH)/bin/swag
 
@@ -20,7 +23,14 @@ swagger-install:
 	go install github.com/swaggo/swag/v2/cmd/swag@latest
 
 wire:
-	$(shell go env GOPATH)/bin/wire gen ./cmd/server/...
+	$(WIRE) gen ./cmd/server/...
+
+## Generate Go code from proto files (requires buf)
+proto:
+	$(BUF) generate
+
+proto-install:
+	go install github.com/bufbuild/buf/cmd/buf@latest
 
 tidy:
 	go mod tidy

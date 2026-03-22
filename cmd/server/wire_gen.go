@@ -32,7 +32,8 @@ func InitializeApp(cfg *configs.Config) (*App, error) {
 	sampleRepository := sample.ProvideRepository(db)
 	sampleService := sample.ProvideService(sampleRepository)
 	controller := sample.ProvideController(sampleService)
-	app := NewApp(cfg, logger, controller)
+	grpcHandler := sample.ProvideGRPCHandler(sampleService)
+	app := NewApp(cfg, logger, controller, grpcHandler)
 	return app, nil
 }
 
@@ -45,7 +46,8 @@ func InitializeAppDummy(cfg *configs.Config) (*App, error) {
 	sampleRepository := sample.NewSampleRepositoryDummy()
 	sampleService := sample.ProvideService(sampleRepository)
 	controller := sample.ProvideController(sampleService)
-	app := NewApp(cfg, logger, controller)
+	grpcHandler := sample.ProvideGRPCHandler(sampleService)
+	app := NewApp(cfg, logger, controller, grpcHandler)
 	return app, nil
 }
 
@@ -55,6 +57,6 @@ var infraSet = wire.NewSet(infra.NewLogger, infra.NewDatabase)
 
 var loggerSet = wire.NewSet(infra.NewLogger)
 
-var sampleSet = wire.NewSet(sample.ProvideRepository, sample.ProvideService, sample.ProvideController)
+var sampleSet = wire.NewSet(sample.ProvideRepository, sample.ProvideService, sample.ProvideController, sample.ProvideGRPCHandler)
 
-var dummySampleSet = wire.NewSet(sample.NewSampleRepositoryDummy, sample.ProvideService, sample.ProvideController)
+var dummySampleSet = wire.NewSet(sample.NewSampleRepositoryDummy, sample.ProvideService, sample.ProvideController, sample.ProvideGRPCHandler)

@@ -13,10 +13,11 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name string
-	Host string
-	Port int
-	Env  string
+	Name     string
+	Host     string
+	Port     int
+	GRPCPort int
+	Env      string
 }
 
 type DatabaseConfig struct {
@@ -46,6 +47,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("APP_NAME", "my-gift")
 	viper.SetDefault("APP_HOST", "0.0.0.0")
 	viper.SetDefault("APP_PORT", 8080)
+	viper.SetDefault("APP_GRPC_PORT", 50051)
 	viper.SetDefault("APP_ENV", "development")
 	viper.SetDefault("DB_PORT", 5432)
 	viper.SetDefault("DB_SSLMODE", "disable")
@@ -54,10 +56,11 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		App: AppConfig{
-			Name: viper.GetString("APP_NAME"),
-			Host: viper.GetString("APP_HOST"),
-			Port: viper.GetInt("APP_PORT"),
-			Env:  viper.GetString("APP_ENV"),
+			Name:     viper.GetString("APP_NAME"),
+			Host:     viper.GetString("APP_HOST"),
+			Port:     viper.GetInt("APP_PORT"),
+			GRPCPort: viper.GetInt("APP_GRPC_PORT"),
+			Env:      viper.GetString("APP_ENV"),
 		},
 		Database: DatabaseConfig{
 			Host:     viper.GetString("DB_HOST"),

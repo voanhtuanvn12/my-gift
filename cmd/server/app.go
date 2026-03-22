@@ -2,14 +2,22 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+
 	_ "my-gift/docs"
 	"my-gift/configs"
+	samplev1 "my-gift/gen/proto/sample/v1"
 	"my-gift/internal/sample"
 
+	"github.com/fullstorydev/grpchan"
+	"github.com/fullstorydev/grpchan/httpgrpc"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	swag "github.com/swaggo/swag/v2"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 const scalarHTML = `<!DOCTYPE html>
@@ -27,13 +35,26 @@ const scalarHTML = `<!DOCTYPE html>
 
 // App holds the iris application and its dependencies.
 type App struct {
-	iris   *iris.Application
-	cfg    *configs.Config
-	logger *zap.Logger
+	iris    *iris.Application
+	grpcSvr *grpc.Server
+	cfg     *configs.Config
+	logger  *zap.Logger
 }
 
 // NewApp assembles the Iris application with all routes.
-func NewApp(cfg *configs.Config, logger *zap.Logger, sampleCtrl *sample.Controller) *App {
+func NewApp(
+	cfg *configs.Config,
+	logger *zap.Logger,
+	sampleCtrl *sample.Controller,
+	sampleGRPC *sample.GRPCHandler,
+) *App {
+	// ── Native gRPC server (HTTP/2, port GRPC_PORT) ──────────────────────────
+	// Used by grpcurl and native gRPC clients.
+	grpcSvr := grpc.NewServer()
+	samplev1.RegisterSampleServiceServer(grpcSvr, sampleGRPC)
+	reflection.Register(grpcSvr) // enables grpcurl --use-reflection
+
+	// ── Iris HTTP server (port APP_PORT) ─────────────────────────────────────
 	app := iris.New()
 	app.Use(iris.Compression)
 
@@ -56,21 +77,54 @@ func NewApp(cfg *configs.Config, logger *zap.Logger, sampleCtrl *sample.Controll
 		ctx.WriteString(scalarHTML) //nolint:errcheck
 	})
 
+	// REST routes
 	api := app.Party("/api/v1")
 	mvc.Configure(api.Party("/samples"), func(m *mvc.Application) {
 		m.Handle(sampleCtrl)
 	})
 
-	return &App{iris: app, cfg: cfg, logger: logger}
+	// gRPC-over-HTTP/1.1 via grpchan — for clients that can't do HTTP/2.
+	// Route: POST /grpc/<package>.<Service>/<Method>
+	handlers := grpchan.HandlerMap{}
+	samplev1.RegisterSampleServiceServer(handlers, sampleGRPC)
+	grpcMux := http.NewServeMux()
+	httpgrpc.HandleServices(grpcMux.HandleFunc, "/grpc/", handlers, nil, nil)
+	app.Any("/grpc/{any:path}", iris.FromStd(grpcMux))
+
+	return &App{iris: app, grpcSvr: grpcSvr, cfg: cfg, logger: logger}
 }
 
-// Run starts the HTTP server.
+// Run starts both the Iris HTTP server and the native gRPC server concurrently.
 func (a *App) Run() error {
-	addr := fmt.Sprintf("%s:%d", a.cfg.App.Host, a.cfg.App.Port)
-	a.logger.Info("Starting server",
-		zap.String("addr", addr),
+	httpAddr := fmt.Sprintf("%s:%d", a.cfg.App.Host, a.cfg.App.Port)
+	grpcAddr := fmt.Sprintf("%s:%d", a.cfg.App.Host, a.cfg.App.GRPCPort)
+
+	a.logger.Info("Starting HTTP server",
+		zap.String("addr", httpAddr),
 		zap.String("env", a.cfg.App.Env),
 		zap.String("docs", fmt.Sprintf("http://localhost:%d/docs", a.cfg.App.Port)),
+		zap.String("grpc-http1", fmt.Sprintf("http://localhost:%d/grpc/", a.cfg.App.Port)),
 	)
-	return a.iris.Listen(addr)
+	a.logger.Info("Starting native gRPC server",
+		zap.String("addr", grpcAddr),
+	)
+
+	errCh := make(chan error, 2)
+
+	// Native gRPC (HTTP/2) — for grpcurl and native clients
+	go func() {
+		lis, err := net.Listen("tcp", grpcAddr)
+		if err != nil {
+			errCh <- fmt.Errorf("grpc listen: %w", err)
+			return
+		}
+		errCh <- a.grpcSvr.Serve(lis)
+	}()
+
+	// Iris HTTP
+	go func() {
+		errCh <- a.iris.Listen(httpAddr)
+	}()
+
+	return <-errCh
 }
