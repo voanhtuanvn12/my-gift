@@ -30,6 +30,9 @@ my-gift/
 │   │   ├── service.go       # Business logic
 │   │   ├── handler_http.go  # Iris MVC controller
 │   │   └── provider.go      # Wire providers
+│   ├── middleware/
+│   │   ├── middleware.go    # WrapRouter / UseRouter / UseGlobal / Use / UseError / Done / DoneGlobal
+│   │   └── jwt.go           # JWTVerify / GetClaims / GenerateToken
 │   └── infra/
 │       ├── database.go  # GORM + PostgreSQL setup
 │       └── logger.go    # Zap logger setup
@@ -107,6 +110,8 @@ make build
 | `DB_SSLMODE`   | `disable`       | SSL mode                 |
 | `DB_TIMEZONE`  | `Asia/Ho_Chi_Minh` | Timezone              |
 | `LOG_LEVEL`    | `info`          | `debug` / `info` / `warn` / `error` |
+| `JWT_SECRET`   | `change-me-in-production` | HMAC-SHA256 signing key  |
+| `JWT_EXPIRY`   | `24h`           | Token expiry (Go duration string)    |
 
 ## API Endpoints
 
@@ -149,6 +154,64 @@ open http://localhost:8080/openapi.json
 | `make wire`           | Regenerate Wire DI code              |
 | `make tidy`           | Run `go mod tidy`                    |
 | `make lint`           | Run golangci-lint                    |
+
+## Implementation Steps
+
+Thứ tự xây dựng project từ đầu (để tham khảo khi tạo domain mới):
+
+### Bước 1 — Cấu trúc nền (`configs`, `infra`)
+1. `configs/config.go` — load env vars với Viper, định nghĩa `Config` struct
+2. `internal/infra/logger.go` — khởi tạo Zap logger theo env
+3. `internal/infra/database.go` — kết nối PostgreSQL qua GORM
+
+### Bước 2 — Domain layer (`internal/<domain>/`)
+4. `domain.go` — định nghĩa entity, DTOs (Request/Response), interface `Service` và `Repository`
+5. `model.go` — GORM model + mapper `ToDomain()` / `fromDomain()`
+6. `repo.go` — implement `Repository` với GORM (PostgreSQL)
+7. `repo_dummy.go` — implement `Repository` in-memory (dùng khi `APP_ENV=dummy`)
+8. `service.go` — implement `Service`, chứa business logic
+9. `handler_http.go` — Iris MVC controller, map HTTP ↔ Service
+10. `provider.go` — Wire provider functions (`ProvideRepository`, `ProvideService`, `ProvideController`)
+
+### Bước 3 — Middleware (`internal/middleware/`)
+11. `middleware.go` — 7 lớp middleware theo thứ tự Iris pipeline:
+    - `WrapRouter` → low-level nhất, CORS, rate limit
+    - `UseRouter` → request ID, access log
+    - `UseGlobal` → chạy cho mọi route kể cả error pages
+    - `Use` → chạy cho route thường (auth, business logic)
+    - `UseError` → chỉ chạy cho error handler
+    - `Done` → cleanup sau route thường
+    - `DoneGlobal` → cleanup cho mọi route
+12. `jwt.go` — `JWTVerify`, `GetClaims`, `GenerateToken`
+
+### Bước 4 — Wiring (`cmd/server/`)
+13. `wire.go` — khai báo Wire provider sets và injector functions
+14. `wire_gen.go` — **auto-generated** bởi `make wire`, không sửa tay
+15. `app.go` — khởi tạo Iris app, đăng ký middleware, routes, MVC error handler
+16. `main.go` — entry point, chọn `InitializeApp` hay `InitializeAppDummy` theo env
+
+### Bước 5 — API Docs
+17. Thêm Swaggo annotations vào `main.go` (global) và `handler_http.go` (per-endpoint)
+18. `make swagger` → sinh `docs/`
+
+### Quy tắc khi thêm domain mới
+
+```
+internal/<domain>/
+├── domain.go       # entity + DTOs + interface
+├── model.go        # GORM model
+├── repo.go         # PostgreSQL impl
+├── repo_dummy.go   # in-memory impl
+├── service.go      # business logic
+├── handler_http.go # HTTP controller
+└── provider.go     # Wire providers
+```
+
+Sau đó:
+- Thêm provider set vào `wire.go`
+- Đăng ký route trong `app.go`
+- Chạy `make wire` để tái sinh `wire_gen.go`
+- Chạy `make swagger` để cập nhật docs
 
 ## Docker
 

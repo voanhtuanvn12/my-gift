@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	_ "my-gift/docs"
 	"my-gift/configs"
+	"my-gift/internal/middleware"
 	"my-gift/internal/sample"
+	apperrors "my-gift/pkg/errors"
 
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
@@ -35,7 +38,28 @@ type App struct {
 // NewApp assembles the Iris application with all routes.
 func NewApp(cfg *configs.Config, logger *zap.Logger, sampleCtrl *sample.Controller) *App {
 	app := iris.New()
+
+	// 1. WrapRouter - low-level nhất, bọc toàn bộ HTTP handler (CORS, rate limit...)
+	app.WrapRouter(middleware.WrapRouter)
+
+	// 2. UseRouter - chạy trước route matching, có đầy đủ iris.Context
+	app.UseRouter(middleware.UseRouter(logger))
+
+	// 3. UseGlobal - chạy cho MỌI route kể cả error pages
+	app.UseGlobal(middleware.UseGlobal(logger))
+
+	// 4. Use - chỉ chạy cho route thường (không phải error handler)
 	app.Use(iris.Compression)
+	app.Use(middleware.Use(logger))
+
+	// 5. UseError - chỉ chạy cho error handler (OnErrorCode)
+	app.UseError(middleware.UseError(logger))
+
+	// 6. Done - chạy SAU handler, chỉ route thường
+	app.Done(middleware.Done(logger))
+
+	// 7. DoneGlobal - chạy SAU handler, cho MỌI route
+	app.DoneGlobal(middleware.DoneGlobal(logger))
 
 	app.Get("/health", func(ctx iris.Context) {
 		ctx.JSON(iris.Map{"status": "ok"})
@@ -57,7 +81,20 @@ func NewApp(cfg *configs.Config, logger *zap.Logger, sampleCtrl *sample.Controll
 	})
 
 	api := app.Party("/api/v1")
+	api.Use(middleware.JWTVerify(cfg.JWT.Secret))
+
 	mvc.Configure(api.Party("/samples"), func(m *mvc.Application) {
+		m.HandleError(func(ctx iris.Context, err error) {
+			var appErr *apperrors.AppError
+			if errors.As(err, &appErr) {
+				ctx.StopWithJSON(appErr.Code, appErr)
+				return
+			}
+			ctx.StopWithJSON(iris.StatusInternalServerError, iris.Map{
+				"code":    iris.StatusInternalServerError,
+				"message": err.Error(),
+			})
+		})
 		m.Handle(sampleCtrl)
 	})
 

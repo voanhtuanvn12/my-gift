@@ -3,6 +3,7 @@ module my-gift
 go 1.25.0
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/kataras/iris/v12 v12.2.11
 	github.com/spf13/viper v1.21.0
@@ -35,7 +36,6 @@ require (
 	github.com/gobwas/ws v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20240328165702-4d01890c35c0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/iris-contrib/schema v0.0.6 // indirect
@@ -48,6 +48,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kataras/blocks v0.0.8 // indirect
 	github.com/kataras/golog v0.1.11 // indirect
+	github.com/kataras/jwt v0.1.12 // indirect
 	github.com/kataras/neffos v0.0.24-0.20240408172741-99c879ba0ede // indirect
 	github.com/kataras/pio v0.0.13 // indirect
 	github.com/kataras/sitemap v0.0.6 // indirect
