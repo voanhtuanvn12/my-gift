@@ -1,0 +1,24 @@
+# Binary
+bin/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+*.test
+*.out
+coverage.html
+
+# Air (live reload)
+tmp/

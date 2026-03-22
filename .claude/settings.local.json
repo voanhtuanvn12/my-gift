@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go get gorm.io/gorm gorm.io/driver/postgres github.com/spf13/viper go.uber.org/zap github.com/google/wire)",
+      "Bash(go build ./...)",
+      "WebSearch",
+      "Bash(go get github.com/iris-contrib/swagger/v12)",
+      "Bash(go install github.com/swaggo/swag/cmd/swag@latest)",
+      "Bash(swag init -g cmd/server/main.go -o docs)",
+      "Bash(go get github.com/swaggo/swag@latest)",
+      "Bash(python3 -m json.tool)",
+      "Bash(go get github.com/swaggo/swag/v2@latest)",
+      "Bash(go install github.com/swaggo/swag/v2/cmd/swag@latest)",
+      "Bash(lsof -ti :8080)",
+      "Bash(xargs kill -9)",
+      "Bash(go install github.com/google/wire/cmd/wire@latest)"
+    ]
+  }
+}

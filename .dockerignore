@@ -1,0 +1,32 @@
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+
+# Binary output
+bin/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go test & coverage
+*.test
+*.out
+coverage.html
+vendor/
+
+# Air
+tmp/
+
+# Docs (regenerated at build)
+docs/
+
+# README
+README.md
